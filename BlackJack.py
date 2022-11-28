@@ -2,10 +2,6 @@ import sys
 from BlackJackLib import *
 import argparse
 
-INITIALMONEY = 500
-MINBET = 50
-WIN = 50000
-
 #blackjack game from command line
 #game steps:
 '''
@@ -39,19 +35,18 @@ def welcome(money = 500) -> None:
     Come on up to our cosy table and order a drink from the pretty gal with
     most of her teeth.
     
-    Please enter your initial bet! (min {MINBET}):
+    
     ''')
     #TODO: write prompt to explain rules or start game.
     return None
 
 def card_round(money: int) -> int:
-    bet = int(input(f"Place your bet! (min {MINBET} to max {money}): "))
-    while (MINBET > bet or bet > money):
-        bet = int(input("I'm sorry, please enter your bet again as an int: (min $50): "))
+    bet = accept_bet(f"--> Place your bet! (min {MINBET} to max {money}): ", money)
     money -= bet
     print(f'''
     Thank you! You placed {bet}, leaving you {money}. Let's see what lady luck has
     in store for you tonight!
+
     ''')
 
     deck = shuffle_deck(DECK)
@@ -59,68 +54,91 @@ def card_round(money: int) -> int:
     deck = deck[3:] #remove first 4 cards
     print_hand_status(dealer, player)
 
-    if is_natural_blackjack(player):
+    if is_natural_blackjack(player) and value_of_hand(dealer) != 21:
         print(f"You were dealt a natural blackjack! You win {NATURAL_PAYOUT * bet}")
         money += int(round((NATURAL_PAYOUT + 1)* bet))
         #plus one bc you get your original bet back.
         return money
 
-    if can_split_pairs(player):
-        if ask_ok("Would you like to split your pairs? Y/N: "):
-            #TODO: write split!
-            print("TODO: SPLIT!")
-    if can_double_down(player):
-        if ask_ok("Would you like to double down? Y/N: "):
-            #TODO: write double down!
-            print("TODO: DOUBLE DOWN!")
+    sp: bool = False
+    bet2 = 0
+    if can_split_pairs(player) and money - bet > 0:
+        if ask_ok("Would you like to split your pairs? Split/No: ",
+                yes = {'split','y','s','ye','yes', 'sp'}):
+            money -= bet
+            bet2 = bet
+            print(f"You slap some more money on the table: {bet}. You now have {money} left.")
+            sp = True
 
-    while value_of_hand(player) < 21:
-        if ask_ok(f"Would you like to hit or stay? Y/N: "):
-            player, deck = hit(player, deck)
-            print(player)
-            print_hand_status(dealer, player)
-        else:
-            break
+    dd: bool = False
+    if can_double_down(player) and money - bet > 0:
+        if ask_ok("Would you like to double down? DD/N: ",
+                yes = {'y','ye','yes','d','double down','dd'}):
+            money -= bet
+            bet *= 2
+            dd = True
 
-    if value_of_hand(player) > 21:
-        print("You bust. The House takes your hard earned money.\n")
-        return money
+    player, deck, player2 = player_turn(player, dealer, deck, dd, sp)
+
+    #TODO: handle player2 hand
+    if sp:
+        if value_of_hand(player) > 21 and value_of_hand(player2) > 21:
+            print("You bust on both hands. The House takes your hard earned money.\n")
+            return int(money)
+        elif value_of_hand(player) > 21:
+            print("You bust on the first hand. Let's see how the other does.\n")
+            bet = 0 #downsize your bet
+        elif value_of_hand(player2) > 21:
+            print("You bust on the second hand. Let's see how the other does.\n")
+            bet2 = 0 #downsize your bet
+    else:
+        if value_of_hand(player) > 21:
+            print("You bust. The House takes your hard earned money.\n")
+            return int(money)
+
+    print(f'''
+The dealer takes their turn.
+They turn over their hidden card.
+        ''')
 
     dealer, deck = dealer_turn(dealer, deck)
-    print_hand_status(dealer, player, False)
-    
-    if value_of_hand(dealer) > 21:
-        print("The Dealer busts. The purty girl brings you another drink.\n")
-        return money + 2*bet
+    print_hand_status(dealer, player, player2 = player2, dealer_hidden = False)
 
+    if value_of_hand(dealer) > 21:
+        print("The Dealer busts. The purdy girl brings you another drink.\n")
+        return int(money + 2*(bet + bet2))
+
+    #hand1 winner/loser outcome:
     winner = player_win(player, dealer)
+
+    #optional hand2 winner/loser outcome:
+    if player2 is not None and value_of_hand(player) <= 21:
+        winner2 = player_win(player2, dealer)
+        print("Hand1 results:\n")
+    else:
+        winner2 = False
+
     if winner is None:
         money += bet
-        print("Looks like a draw partner. Here's your money back")
+        print("Looks like a draw partner. Here's your money back\n")
     elif winner:
         money += 2*bet
         print("You win the hand!\n")
     else:
         print("You shake your head.\n")
+
+    if player2 is not None and value_of_hand(player) <= 21:
+        print("Hand2 results:\n")
+        if winner2 is None:
+            money += bet
+            print("Looks like a draw partner. Here's your money back\n")
+        elif winner:
+            money += 2*bet2
+            print("You win the hand!\n")
+        else:
+            print("You shake your head.\n")
+
     return money
-
-def ask_ok(
-        prompt: str,
-        retries=4,
-        reminder= "Sorry, I didn't understand. Please enter again - Y/N: "
-        )-> bool:
-
-    while True:
-        ok = str(input(prompt)).lower()
-        if ok in {'y','ye','yes'}:
-            return True
-        if ok in {'n','no','nop','nope'}:
-            return False
-        retries -= 1
-        if retries < 0:
-            raise ValueError('invalid user response')
-        print(reminder)
-    return False
 
 def main():
     money = deepcopy(INITIALMONEY)
@@ -128,27 +146,27 @@ def main():
     another_round = True
     while another_round:
         money = card_round(money)
-        print(f"You take a sip of your drink. You now have {money}")
-        if money > WIN:
+        print(f"You take a sip of your drink. You now have {money}\n")
+        if money >= WIN:
             #TODO: make a list of possible winning messages
             print('''
-            The dealer looks at the stack of coins sitting next to you.
-            He nods and hits a small, red button on the corner
-            of his table.
+    The dealer looks at the stack of coins sitting next to you.
+    He nods and hits a small, red button on the corner of his table.
 
-            A man in a black jacket and cowboy hat walks in and sighs.
+    A man in a black jacket and cowboy hat walks in and sighs.
 
-            Turns out Dead Trout of Matagorda was already living on a
-            prayer, and you done cleaned her out.
+    Turns out Dead Trout of Matagorda was already living on a
+    prayer, and you done cleaned her out.
 
-            The man in the black jacket gives you a pile of cash plus 
-            an IOU, shakes your hand, and escorts you out.
+    The man in the black jacket gives you a pile of cash plus 
+    an IOU and shakes your hand.
 
-            'Don't come back, you hear?'
+    'Don't come back, you hear?'
 
-            I don't think you'll see the cash on that IOU.
+    You leave, knowing you won't see the cash on that IOU. You leave a
+    1-star trip review.
 
-            YOU WIN THE GAME!
+    YOU WIN THE GAME!
             ''')
         elif money >= 50:
             #TODO: make list of possible messages to print on screen.
@@ -160,8 +178,7 @@ def main():
     print(f'''
     You feel something shift in the universe: it's time to go. You
     put down your drink. You scoop up your winnings, tossing the dealer
-    ${int(round(money*.05))}. They nodd to you. You take the remaining
-    to the teller.
+    ${int(round(money*.05))}. They nodd to you. You take the remaining to the teller.
 
     You leave with ${int(round(money*.95))}
 
