@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 from enum import Enum
 from copy import deepcopy
 import random
@@ -14,11 +14,18 @@ DECK = [(y,x) for x in SUITS for y in CARDVALUES] #52 cards
 
 NATURAL_PAYOUT = 1.5
 
+'''
+Round Setup
+'''
+
 def shuffle_deck(deck: List[str]) -> List[str]:
     return random.sample(deck, k=len(deck))
 
 def deal(deck: List[Tuple[str,str]]) -> Tuple[List[Tuple[str,str]], List[Tuple[str,str]]]:
         return ([deck[0],deck[2]],[deck[1],deck[3]])
+'''
+Math Functions
+'''
 
 def value_of_card(card: str) -> int:
     '''
@@ -37,59 +44,103 @@ def value_of_hand(hand: List[Tuple[str,str]]) -> int:
         tot += 10
     return tot
 
-def hand_string(hand: List[Tuple[str,str]]) -> str:
+def player_win(player: List[Tuple[str,str]], dealer: List[Tuple[str,str]]) -> Optional[bool]:
+    if value_of_hand(player) == value_of_hand(dealer):
+        return None
+    return value_of_hand(player) > value_of_hand(dealer)
+
+'''
+BlackJack 'Pretty Print' light
+'''
+
+def hand_string(hand: List[Tuple[str,str]], second_hidden = False) -> str:
+    if second_hidden:
+        return "".join(hand[0]) + ", XX"
     return ",".join(["".join(card) for card in hand])
 
-def print_hand_status(dealer: List[Tuple[str,str]], player: List[Tuple[str,str]]) -> None:
+def print_hand_status(
+        dealer: List[Tuple[str,str]],
+        player: List[Tuple[str,str]],
+        dealer_hidden = True) -> None:
     '''
     print current hand status of dealer and player
     '''
     #TODO: obscure dealer's second card until stand
-    print(f'Dealer: {hand_string(dealer)} worth: {value_of_hand(dealer)}\n')
+    if dealer_hidden:
+        print(f'Dealer: {hand_string(dealer, dealer_hidden)} worth: Unknown')
+    else:
+        print(f'Dealer: {hand_string(dealer, dealer_hidden)} worth: {value_of_hand(dealer)}\n')
     print(f'Player: {hand_string(player)} worth: {value_of_hand(player)}\n')
  
     return None
 
-#TODO: do I need this?
-def value_of_ace(cards: List[str]) -> int:
-    '''
-    calculate the most advantegous value for an ace card
-    if an ace is already in hand, count it as 11 points.
-    '''
-    tot = sum([value_of_card(card) for card in cards])
-    if 'A' in cards and tot + 10 < 21:
-        tot += 10
-    if 11 + tot > 21:
-        return 1
-    else:
-        return 11
+'''
+Options for Player
+'''
 
-#Higher payout for nat blackjack: usually 2:1 or 3:2 - NATURAL_PAYOUT
-def is_natural_blackjack(card_one: str, card_two: str) -> bool:
+def is_natural_blackjack(hand: List[Tuple[str,str]]) -> bool:
     '''
     return if you were dealt a natural blackack where
     one card is worth 10 points and the other is an ace
+    payout for nat blackjack is usually 2:1 or 3:2. Value is NATURAL_PAYOUT
     '''
-    return any((x in {'J','Q','K','10'} and y in {'A'} for x,y in [(card_one, card_two),(card_two, card_one)]))
+    if len(hand) >2:
+        return False
+    return value_of_hand(hand) == 21 
 
-def can_split_pairs(hand: List[Touple[str,str]]) -> bool:
+def can_split_pairs(hand: List[Tuple[str,str]]) -> bool:
     '''
     a player can split pairs if the card values are equal.
     these are then treated as two seperate hands
     '''
     if len(hand) > 2:
         return False
-    return value_of_card(card_one) == value_of_card(card_two)
+    return value_of_card(hand[0][0]) == value_of_card(hand[1][0])
 
-def can_double_down(card_one: str, card_two: str) -> bool:
+def can_double_down(hand: List[Tuple[str,str]]) -> bool:
     '''
     when the original two cards dealt total 9,10, or 11 points,
     a player can place an additional bet equal to their original bet.
     '''
-    return value_of_card(card_one) + value_of_card(card_two) in {9,10,11}
+    if len(hand) > 2:
+        return False
+    return value_of_card(hand[0][0]) + value_of_card(hand[1][0]) in {9,10,11}
 
 def can_hit_again(hand: List[Tuple[str,str]]) -> bool:
     '''
     if value is under 21, player can hit again
     '''
     return value_of_hand(cards) < 21
+
+'''
+Round Actions
+'''
+
+def hit(
+        player: List[Tuple[str,str]],
+        deck: List[Tuple[str,str]]) -> Tuple[List[Tuple[str,str]]]:
+    '''
+    add a card from the deck
+    '''
+    return player + [deck[0]], deck[1:]
+
+def dealer_turn(
+        dealer: List[Tuple[str,str]],
+        deck: List[Tuple[str,str]]) -> Tuple[List[Tuple[str,str]]]:
+    '''
+    The dealer's turn is simple: if their hand is under 17, hit.
+    '''
+
+    print(f'''
+    The dealer takes their turn.
+    They turn over their hidden card.
+        \n\n''')
+    #print(f'Dealer: {hand_string(dealer)} worth: {value_of_hand(dealer)}\n')
+
+    while value_of_hand(dealer) < 17:
+        print(f'Dealer: {hand_string(dealer)} worth: {value_of_hand(dealer)}\n')
+        print('The Dealer takes a card')
+        dealer, deck = hit(dealer, deck)
+    return dealer, deck
+
+

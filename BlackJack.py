@@ -56,21 +56,55 @@ def card_round(money: int) -> int:
 
     deck = shuffle_deck(DECK)
     dealer, player = deal(deck)
-
+    deck = deck[3:] #remove first 4 cards
     print_hand_status(dealer, player)
 
-    if value_of_hand(player) == 21:
+    if is_natural_blackjack(player):
         print(f"You were dealt a natural blackjack! You win {NATURAL_PAYOUT * bet}")
         money += int(round((NATURAL_PAYOUT + 1)* bet))
         #plus one bc you get your original bet back.
         return money
+
+    if can_split_pairs(player):
+        if ask_ok("Would you like to split your pairs? Y/N: "):
+            #TODO: write split!
+            print("TODO: SPLIT!")
+    if can_double_down(player):
+        if ask_ok("Would you like to double down? Y/N: "):
+            #TODO: write double down!
+            print("TODO: DOUBLE DOWN!")
+
+    while value_of_hand(player) < 21:
+        if ask_ok(f"Would you like to hit or stay? Y/N: "):
+            player, deck = hit(player, deck)
+            print(player)
+            print_hand_status(dealer, player)
+        else:
+            break
+
+    if value_of_hand(player) > 21:
+        print("You bust. The House takes your hard earned money.\n")
+        return money
+
+    dealer, deck = dealer_turn(dealer, deck)
+    print_hand_status(dealer, player, False)
     
-    #TODO: write choices (split, stand, hit, doubledown)
-    #TODO: ask users for choice
-    #TODO: process choice
+    if value_of_hand(dealer) > 21:
+        print("The Dealer busts. The purty girl brings you another drink.\n")
+        return money + 2*bet
+
+    winner = player_win(player, dealer)
+    if winner is None:
+        money += bet
+        print("Looks like a draw partner. Here's your money back")
+    elif winner:
+        money += 2*bet
+        print("You win the hand!\n")
+    else:
+        print("You shake your head.\n")
     return money
 
-def next_round(
+def ask_ok(
         prompt: str,
         retries=4,
         reminder= "Sorry, I didn't understand. Please enter again - Y/N: "
@@ -85,6 +119,7 @@ def next_round(
         retries -= 1
         if retries < 0:
             raise ValueError('invalid user response')
+        print(reminder)
     return False
 
 def main():
@@ -117,11 +152,21 @@ def main():
             ''')
         elif money >= 50:
             #TODO: make list of possible messages to print on screen.
-            another_round = next_round("Another Round? Y/N: ")
+            another_round = ask_ok("Another Round? Y/N: ")
         else:
             #TODO: sad goodbye messages.
             print("Alas, You are only a winner in empty wallets. GAME OVER")
             another_round = False
+    print(f'''
+    You feel something shift in the universe: it's time to go. You
+    put down your drink. You scoop up your winnings, tossing the dealer
+    ${int(round(money*.05))}. They nodd to you. You take the remaining
+    to the teller.
+
+    You leave with ${int(round(money*.95))}
+
+    THANKS FOR PLAYING
+    ''')
     return 1
 
 if __name__ == '__main__':
