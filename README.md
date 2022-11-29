@@ -6,5 +6,4 @@ Payout, initial money, min bet, and 'winning' (i.e. taking the house for all the
 
 Enjoy your time at the Matagorda Dead Trout Casino!
 ---------------------------------------------------------------------------------------------------------------------------
-![image](https://user-images.githubusercontent.com/35183618/204640514-0b29a3e0-a632-42ff-a508-d39bb9408b93.png)
-
+![image](https://user-images.githubusercontent.com/35183618/204641925-feb18416-e19b-4939-b133-be69369c31ea.png)
