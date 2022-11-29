@@ -86,25 +86,33 @@ Options for Player
 def accept_bet(
         prompt: str,
         max_bet,
-        retries = 4,
-        reminder = "    The Dealer gives you the side eye. 'We don't accept that here.'",
+        retries = 5,
+        reminder = "    Please try again. ",
         min_bet = MINBET
         ) -> int:
 
     while True:
         bet = str(input(prompt))
-        if bet.isdigit() and min_bet <= int(bet) and int(bet) <= max_bet:
-            return int(bet)
+        if bet.isdecimal():
+            if min_bet <= int(bet) and int(bet) <= max_bet:
+                return int(bet)
+            elif int(bet) < min_bet:
+                print("\n    The Dealer says 'That's not enough for me to throw down some cards.'")
+            elif int(bet) > max_bet:
+                print("\n    Your ego's writing checks your wallet can't cash.")
+        else:
+            print("\n    The Dealer gives you the side eye. 'We don't accept that here. Whole Dollar amounts only.'")
         retries -= 1
-        if retries < 0:
+        if retries <= 0:
+            print("The Bouncer approaches. It's time to go.\n")
             raise ValueError("invalid user response")
-        print(reminder)
+        print(reminder+f"{retries} retries remain before the Bouncer kicks your @** out.\n")
     return False
 
 def ask_ok(
         prompt: str,
-        retries = 4,
-        reminder = "Sorry, I didn't understand. Please enter again - Y/N: ",
+        retries = 5,
+        reminder = "    The Dealer looks at you. 'Sorry, I didn't understand that.'\n",
         yes = {'y','ye','yes'},
         no = {'n','no','nop','nope','nada'})-> bool:
 
@@ -116,8 +124,11 @@ def ask_ok(
             return False
         retries -= 1
         if retries < 0:
+            print("The Bouncer approaches. It's time to go.\n")
             raise ValueError("invalid user response")
         print(reminder)
+        if retries <= 3:
+            print(f"    {retries} retries remain before the Bouncer kicks your @** out.\n")
     return False
 
 def is_natural_blackjack(hand: List[Tuple[str,str]]) -> bool:
@@ -185,7 +196,8 @@ def player_hit(
             print_hand_status(dealer, player)
         else:
             break
-
+    if value_of_hand(player) == 21:
+        print("    WHOOHOOO! 21! Let's see what the Dealer has.\n")
     return player, deck
 
 def split(
@@ -250,13 +262,12 @@ def player_turn(
         Hand1 {hand_string(player)} worth: {value_of_hand(player)}
         Hand2 {hand_string(player2)} worth: {value_of_hand(player2)}
 
-    Playing Hand1:""")
+    Playing Hand1: {hand_string(player)} worth: {value_of_hand(player)}""")
 
     player, deck = player_hit(player,dealer,deck)
 
     if player2 is not None:
-        print("""
-    Playing Hand2:""")
+        print(f"\n    Playing Hand2: {hand_string(player2)} worth: {value_of_hand(player2)}")
         player2, deck = player_hit(player2,dealer,deck)
 
     return player, deck, player2

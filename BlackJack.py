@@ -40,22 +40,22 @@ def welcome(money = 500) -> None:
     return None
 
 def card_round(money: int) -> int:
-    bet = accept_bet(f"    Place your bet! (min {MINBET} to max {money}): ", money)
+    bet = accept_bet(f"    Place your bet! (min ${MINBET} to max ${money}): ", money)
     money -= bet
     print(f'''
     ---------------------------------------------------------------------------
-    Thank you! You placed {bet}, leaving you {money}.
+    Thank you! You placed ${bet}, leaving you ${money}.
     Let's see what lady luck has in store for you tonight!
     ---------------------------------------------------------------------------
     ''')
 
     deck = shuffle_deck(DECK)
     dealer, player = deal(deck)
-    deck = deck[3:] #remove first 4 cards
+    deck = deck[4:] #remove first 4 cards
     print_hand_status(dealer, player)
 
     if is_natural_blackjack(player) and value_of_hand(dealer) != 21:
-        print(f"\tYou were dealt a natural blackjack! You win {NATURAL_PAYOUT * bet}")
+        print(f"\tYou were dealt a natural blackjack! You win ${int(round(NATURAL_PAYOUT * bet))}")
         money += int(round((NATURAL_PAYOUT + 1)* bet))
         #plus one bc you get your original bet back.
         return money
@@ -66,8 +66,8 @@ def card_round(money: int) -> int:
         if ask_ok("    Would you like to split your pairs? Split/No: ",
                 yes = {'split','y','s','ye','yes', 'sp'}):
             money -= bet
+            print(f"    You slap another ${bet} on the table. You now have ${money} left.")
             bet2 = bet
-            print(f"    You slap another ${bet} on the table. You now have {money} left.")
             sp = True
 
     dd: bool = False
@@ -75,6 +75,7 @@ def card_round(money: int) -> int:
         if ask_ok("    Would you like to double down? DD/N: ",
                 yes = {'y','ye','yes','d','double down','dd'}):
             money -= bet
+            print(f"    You slap another ${bet} on the table. You now have ${money} left.")
             bet *= 2
             dd = True
 
@@ -125,12 +126,12 @@ def card_round(money: int) -> int:
     else:
         print("\tYou shake your head. The Dealer takes your chips.\n")
 
-    if player2 is not None and value_of_hand(player) <= 21:
+    if player2 is not None and value_of_hand(player2) <= 21:
         print("\tHand2 results:")
         if winner2 is None:
             money += bet
             print("\tLooks like a draw partner. Here's your money back\n")
-        elif winner:
+        elif winner2:
             money += 2*bet2
             print("\tYou win the hand! The Dealer tosses you your winnings.\n")
         else:
