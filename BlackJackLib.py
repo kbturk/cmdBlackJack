@@ -2,6 +2,7 @@ from typing import List, Tuple, Optional
 from enum import Enum
 from copy import deepcopy
 import random
+import sys
 
 '''
 french-suited playing card suits
@@ -57,8 +58,8 @@ BlackJack 'Pretty Print' functions
 
 def hand_string(hand: List[Tuple[str,str]], second_hidden = False) -> str:
     if second_hidden:
-        return "".join(hand[0]) + ", XX"
-    return ",".join(["".join(card) for card in hand])
+        return color_card(hand[0]) + ",XX"
+    return ",".join([color_card(card) for card in hand])
 
 def print_hand_status(
         dealer: List[Tuple[str,str]],
@@ -69,14 +70,43 @@ def print_hand_status(
     print current hand status of dealer and player
     '''
     if dealer_hidden:
-        print(f"\tDealer: {hand_string(dealer, dealer_hidden)} worth: Unknown")
+        print_color(f"\tDealer: {hand_string(dealer, dealer_hidden)} worth: Unknown\n","gold")
     else:
-        print(f"\tDealer: {hand_string(dealer, dealer_hidden)} worth: {value_of_hand(dealer)}\n")
-    print(f"\tPlayer: {hand_string(player)} worth: {value_of_hand(player)}")
+        print_color(f"\tDealer: {hand_string(dealer, dealer_hidden)} worth: {value_of_hand(dealer)}\n","gold")
+    print_color(f"\tPlayer: {hand_string(player)} worth: {value_of_hand(player)}","blue")
     if player2 is not None:
-        print(f"\tPlayer: {hand_string(player2)} worth: {value_of_hand(player2)}")
+        print_color(f"\tPlayer: {hand_string(player2)} worth: {value_of_hand(player2)}","blue")
 
     print("\n") 
+    return None
+
+def color_card(card: Tuple[str,str]) -> str:
+    if card[1] in ['♦','♥']:
+        return f'\033[31;107m{card[0]}{card[1]}\033[0m'
+    else:
+        return f'\033[30;107m{card[0]}{card[1]}\033[0m'
+    return 'poop'
+
+def print_color(text: str,color = '37m') -> None:
+    TC = {
+            'red':'31m',
+            'green':'32m',
+            'gold':'33m',
+            'blue':'34m',
+            'magenta':'35m',
+            'cyan':'36m',
+            'bred':'91m',
+            'bgreen':'92m',
+            'byellow':'93m',
+            'bblue':'94m',
+            'bmagenta':'95m',
+            'bcyan':'96m',
+            'bwhite':'97m'
+            }
+    if color not in TC.keys():
+        print(text)
+    else:
+        print(f"\033[{TC[color]}{text}\033[0m")
     return None
 
 '''
@@ -86,7 +116,7 @@ Options for Player
 def accept_bet(
         prompt: str,
         max_bet,
-        retries = 5,
+        retries = 4,
         reminder = "    Please try again. ",
         min_bet = MINBET
         ) -> int:
@@ -97,22 +127,24 @@ def accept_bet(
             if min_bet <= int(bet) and int(bet) <= max_bet:
                 return int(bet)
             elif int(bet) < min_bet:
-                print("\n    The Dealer says 'That's not enough for me to throw down some cards.'")
+                print_color("\n    The Dealer says 'That's not enough for me to throw down some cards.'","gold")
             elif int(bet) > max_bet:
-                print("\n    Your ego's writing checks your wallet can't cash.")
+                print_color("\n    Your ego's writing checks your wallet can't cash.")
+        elif retries == 0:
+            print_color("    The Dealer shakes their head. You're playing the fool.","gold")
         else:
-            print("\n    The Dealer gives you the side eye. 'We don't accept that here. Whole Dollar amounts only.'")
+            print_color("\n    The Dealer gives you the side eye. 'We don't accept that here. Whole Dollar amounts only.'","gold")
         retries -= 1
-        if retries <= 0:
-            print("The Bouncer approaches. It's time to go.\n")
-            raise ValueError("invalid user response")
-        print(reminder+f"{retries} retries remain before the Bouncer kicks your @** out.\n")
+        if retries < 0:
+            print_color("    The Bouncer approaches. It's time to go.\n","cyan")
+            sys.exit()
+        print_color(reminder+f"{retries+1} retries remain before the Bouncer kicks your @** out.\n","cyan")
     return False
 
 def ask_ok(
         prompt: str,
-        retries = 5,
-        reminder = "    The Dealer looks at you. 'Sorry, I didn't understand that.'\n",
+        retries = 4,
+        reminder = "\n    The Dealer looks at you. 'Sorry, I didn't understand that.'",
         yes = {'y','ye','yes'},
         no = {'n','no','nop','nope','nada'})-> bool:
 
@@ -122,18 +154,20 @@ def ask_ok(
             return True
         if ok in no:
             return False
+
         retries -= 1
         if retries < 0:
-            print("The Bouncer approaches. It's time to go.\n")
-            raise ValueError("invalid user response")
-        print(reminder)
+            print_color("    The Bouncer approaches. It's time to go.\n","cyan")
+            sys.exit()
+
+        print_color(reminder,"gold")
         if retries <= 3:
-            print(f"    {retries} retries remain before the Bouncer kicks your @** out.\n")
+            print_color(f"    {retries+1} retries remain before the Bouncer kicks your @** out.\n")
     return False
 
 def is_natural_blackjack(hand: List[Tuple[str,str]]) -> bool:
     '''
-    return if you were dealt a natural blackack where
+    return if you were dealt a natural blackjack where
     one card is worth 10 points and the other is an ace
     payout for nat blackjack is usually 2:1 or 3:2. Value is NATURAL_PAYOUT
     '''
@@ -191,13 +225,13 @@ def player_hit(
                 yes = {'y','ye','yes', 'h','hit'},
                 no =  {'n','no','nop','nope','nada','s','stay'}):
             player, deck = hit(player, deck)
-            #print(player)
             print("\n")
             print_hand_status(dealer, player)
         else:
             break
+
     if value_of_hand(player) == 21:
-        print("    WHOOHOOO! 21! Let's see what the Dealer has.\n")
+        print_color("    WHOOHOOO! 21! Let's see what the Dealer has.\n","green")
     return player, deck
 
 def split(
@@ -209,6 +243,10 @@ def split(
     '''
     return ([player[0], deck[0]],[player[1], deck[1]], deck[2:])
 
+'''
+Dealer and Player Turns
+'''
+
 def dealer_turn(
         dealer: List[Tuple[str,str]],
         deck: List[Tuple[str,str]]) -> Tuple[List[Tuple[str,str]]]:
@@ -217,18 +255,18 @@ def dealer_turn(
     if they have a soft 17 (an ace in the hand worth 11), hit.
     '''
 
-    print(f"\tDealer: {hand_string(dealer)} worth: {value_of_hand(dealer)}\n")
+    print_color(f"\tDealer: {hand_string(dealer)} worth: {value_of_hand(dealer)}\n","gold")
 
     while value_of_hand(dealer) < 17:
-        print("\tThe Dealer takes a card\n")
+        print_color("\tThe Dealer takes a card\n")
         dealer, deck = hit(dealer, deck)
-        print(f"\tDealer: {hand_string(dealer)} worth: {value_of_hand(dealer)}\n")
+        print_color(f"\tDealer: {hand_string(dealer)} worth: {value_of_hand(dealer)}\n","gold")
 
     #if the dealer has a soft 17, continue to take more cards.
     if value_of_hand(dealer) == 17 and sum([value_of_card(x) for x,y in dealer]) != 17:
         dealer, deck = hit(dealer, deck)
         dealer, deck = dealer_turn(dealer, deck)
-    print(f'''    The Dealer is done with their turn. You both look at your cards.
+    print_color(f'''    The Dealer is done with their turn. You both look at your cards.
     ---------------------------------------------------------------------------
     ''')
 
@@ -251,23 +289,23 @@ def player_turn(
     if dd:
         #the player chose to double down and only recieves one more card
         player, deck = hit(player,deck)
-        print(f"\tPlayer: {hand_string(player)} worth: {value_of_hand(player)}\n")
+        print_color(f"\tPlayer: {hand_string(player)} worth: {value_of_hand(player)}\n","blue")
         return player, deck, player2
 
     if sp:
         #the player chose to split their hand and they will play as two seperate hands
        player, player2, deck = split(player, deck)
-       print(f"""
+       print_color(f"""
     You now have two hands:
-        Hand1 {hand_string(player)} worth: {value_of_hand(player)}
-        Hand2 {hand_string(player2)} worth: {value_of_hand(player2)}
+        \033[34mHand1 {hand_string(player)} worth: {value_of_hand(player)}
+        Hand2 {hand_string(player2)} worth: {value_of_hand(player2)}\033[0m
 
-    Playing Hand1: {hand_string(player)} worth: {value_of_hand(player)}""")
+    \033[34mPlaying Hand1: {hand_string(player)} worth: {value_of_hand(player)}\033[0m""")
 
     player, deck = player_hit(player,dealer,deck)
 
     if player2 is not None:
-        print(f"\n    Playing Hand2: {hand_string(player2)} worth: {value_of_hand(player2)}")
+        print_color(f"\n    Playing Hand2: {hand_string(player2)} worth: {value_of_hand(player2)}",'blue')
         player2, deck = player_hit(player2,dealer,deck)
 
     return player, deck, player2
