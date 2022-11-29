@@ -12,14 +12,13 @@ import argparse
    3) pl selects amount to bet (there is a min bet)
    4) 1 d, 1 p, 1 d, 1 p append random selected card from deck. remove card from deck.
    5) print dealer and player cards
-   5) if player was dealt black jack payout is 2:1
-   6) ask if user wants to bet more (check rule on this)
-   7) ask if user wants to hit, fold, split, or rest (check name on this)
-   8) if dealer is under 16, hit dealer
-   9) execute player's choice
-   10)if player hit or split, ask if they wish to hit, fold, split or rest again
-   11)execute player's choice
-   12)play out win/lose
+   6) if player was dealt black jack payout is {NATURAL_PAYOUT}
+   7) ask if user wants to bet more
+   8) ask if user wants to hit, stay, double, or split
+   9) if dealer is under 16, hit dealer
+   10)execute player's choice
+   11)play out win/lose
+   12)ask if user wants to play another round
 '''
 #TODO: write argparse argument to allow player to set initial money(?)
 
@@ -37,7 +36,7 @@ def welcome(money = 500) -> None:
     most of her teeth.
     ---------------------------------------------------------------------------
     ''')
-    #TODO: write prompt to explain rules or start game.
+    #TODO: write or give link on rules of the game.
     return None
 
 def card_round(money: int) -> int:
@@ -81,7 +80,6 @@ def card_round(money: int) -> int:
 
     player, deck, player2 = player_turn(player, dealer, deck, dd, sp)
 
-    #TODO: handle player2 hand
     if sp:
         if value_of_hand(player) > 21 and value_of_hand(player2) > 21:
             print("\tYou bust on both hands. The House takes your hard earned money.\n")
