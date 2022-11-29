@@ -69,14 +69,14 @@ def print_hand_status(
     print current hand status of dealer and player
     '''
     if dealer_hidden:
-        print(f'Dealer: {hand_string(dealer, dealer_hidden)} worth: Unknown')
+        print(f"\tDealer: {hand_string(dealer, dealer_hidden)} worth: Unknown")
     else:
-        print(f'Dealer: {hand_string(dealer, dealer_hidden)} worth: {value_of_hand(dealer)}\n')
-    print(f'Player: {hand_string(player)} worth: {value_of_hand(player)}')
+        print(f"\tDealer: {hand_string(dealer, dealer_hidden)} worth: {value_of_hand(dealer)}\n")
+    print(f"\tPlayer: {hand_string(player)} worth: {value_of_hand(player)}")
     if player2 is not None:
-        print(f'Player: {hand_string(player2)} worth: {value_of_hand(player2)}')
+        print(f"\tPlayer: {hand_string(player2)} worth: {value_of_hand(player2)}")
 
-    print('\n') 
+    print("\n") 
     return None
 
 '''
@@ -87,7 +87,7 @@ def accept_bet(
         prompt: str,
         max_bet,
         retries = 4,
-        reminder = "    The dealer gives you the side eye. 'We don't accept that here.'",
+        reminder = "    The Dealer gives you the side eye. 'We don't accept that here.'",
         min_bet = MINBET
         ) -> int:
 
@@ -97,7 +97,7 @@ def accept_bet(
             return int(bet)
         retries -= 1
         if retries < 0:
-            raise ValueError('invalid user response')
+            raise ValueError("invalid user response")
         print(reminder)
     return False
 
@@ -116,7 +116,7 @@ def ask_ok(
             return False
         retries -= 1
         if retries < 0:
-            raise ValueError('invalid user response')
+            raise ValueError("invalid user response")
         print(reminder)
     return False
 
@@ -176,11 +176,12 @@ def player_hit(
     '''
 
     while value_of_hand(player) < 21:
-        if ask_ok(f"Would you like to hit or stay? H/S: ",
+        if ask_ok(f"    Would you like to hit or stay? H/S: ",
                 yes = {'y','ye','yes', 'h','hit'},
                 no =  {'n','no','nop','nope','nada','s','stay'}):
             player, deck = hit(player, deck)
             #print(player)
+            print("\n")
             print_hand_status(dealer, player)
         else:
             break
@@ -200,19 +201,24 @@ def dealer_turn(
         dealer: List[Tuple[str,str]],
         deck: List[Tuple[str,str]]) -> Tuple[List[Tuple[str,str]]]:
     '''
-    The dealer's turn is simple: if their hand is under 17, hit.
+    The Dealer's turn is simple: if their hand is under 17, hit.
     if they have a soft 17 (an ace in the hand worth 11), hit.
     '''
 
+    print(f"\tDealer: {hand_string(dealer)} worth: {value_of_hand(dealer)}\n")
+
     while value_of_hand(dealer) < 17:
-        print(f'Dealer: {hand_string(dealer)} worth: {value_of_hand(dealer)}\n')
-        print('The Dealer takes a card\n')
+        print("\tThe Dealer takes a card\n")
         dealer, deck = hit(dealer, deck)
-    
+        print(f"\tDealer: {hand_string(dealer)} worth: {value_of_hand(dealer)}\n")
+
     #if the dealer has a soft 17, continue to take more cards.
     if value_of_hand(dealer) == 17 and sum([value_of_card(x) for x,y in dealer]) != 17:
         dealer, deck = hit(dealer, deck)
         dealer, deck = dealer_turn(dealer, deck)
+    print(f'''    The Dealer is done with their turn. You both look at your cards.
+    ---------------------------------------------------------------------------
+    ''')
 
     return dealer, deck
 
@@ -233,6 +239,7 @@ def player_turn(
     if dd:
         #the player chose to double down and only recieves one more card
         player, deck = hit(player,deck)
+        print(f"\tPlayer: {hand_string(player)} worth: {value_of_hand(player)}\n")
         return player, deck, player2
 
     if sp:
